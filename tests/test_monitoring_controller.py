@@ -42,3 +42,41 @@ def test_summarize_order_status_excludes_rejected_and_counts_by_status(tmp_path:
         assert "REJECTED" not in result
     finally:
         conn.close()
+
+
+def test_summarize_stock_status_shows_status_per_sample(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        sample_repository.create(
+            Sample(
+                sample_id="S-002",
+                name="산화막 웨이퍼",
+                avg_production_time=0.6,
+                yield_rate=0.88,
+                stock_quantity=0,
+            )
+        )
+        order_controller = OrderController(sample_repository, order_repository)
+        order_controller.place_order("S-001", "고객A", 30, "2026-07-16T00:00:00")
+
+        controller = MonitoringController(order_repository, sample_repository)
+        result = controller.summarize_stock_status()
+
+        s001_line = next(line for line in result.splitlines() if "S-001" in line)
+        s002_line = next(line for line in result.splitlines() if "S-002" in line)
+        assert "여유" in s001_line
+        assert "고갈" in s002_line
+    finally:
+        conn.close()
