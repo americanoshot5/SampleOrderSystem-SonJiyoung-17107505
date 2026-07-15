@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.controller.order_controller import OrderController
+from app.controller.production_controller import ProductionController
 from app.controller.sample_controller import SampleController
 from app.db import get_connection, init_db
 from app.model.order_repository import OrderRepository
@@ -15,7 +16,7 @@ DB_PATH = Path(__file__).parent / "data" / "sample_order.db"
 def show_main_menu() -> None:
     print("\n==================== 반도체 시료 생산주문관리 시스템 ====================")
     print("[1] 시료 등록   [2] 시료 목록   [3] 시료 검색   [4] 시료 주문   "
-          "[5] 주문 승인/거절   [0] 종료")
+          "[5] 주문 승인/거절   [6] 생산 라인   [0] 종료")
 
 
 def prompt_new_sample() -> Sample:
@@ -52,6 +53,13 @@ def handle_order_approval(order_controller: OrderController) -> None:
         print("올바른 선택을 입력하세요.")
 
 
+def handle_production_line(production_controller: ProductionController) -> None:
+    print(production_controller.list_production_queue())
+    choice = input("[1] 다음 생산 처리   [0] 뒤로 > ").strip()
+    if choice == "1":
+        print(production_controller.process_next_production())
+
+
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stdin.reconfigure(encoding="utf-8")
@@ -60,7 +68,9 @@ def main() -> None:
     init_db(conn)
     sample_repository = SampleRepository(conn)
     sample_controller = SampleController(sample_repository)
-    order_controller = OrderController(sample_repository, OrderRepository(conn))
+    order_repository = OrderRepository(conn)
+    order_controller = OrderController(sample_repository, order_repository)
+    production_controller = ProductionController(sample_repository, order_repository)
 
     try:
         while True:
@@ -82,6 +92,8 @@ def main() -> None:
                 print(order_controller.place_order(sample_id, customer_name, quantity, created_at))
             elif choice == "5":
                 handle_order_approval(order_controller)
+            elif choice == "6":
+                handle_production_line(production_controller)
             else:
                 print("올바른 메뉴를 선택하세요.")
     finally:
