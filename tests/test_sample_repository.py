@@ -83,3 +83,38 @@ def test_find_all_returns_all_samples_ordered_by_id(tmp_path: Path):
         assert repository.find_all() == [sample_1, sample_2]
     finally:
         conn.close()
+
+
+def test_search_by_name_returns_only_matching_samples(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        repository = SampleRepository(conn)
+        silicon_wafer = Sample(
+            sample_id="S-001",
+            name="실리콘 웨이퍼",
+            avg_production_time=0.5,
+            yield_rate=0.92,
+            stock_quantity=100,
+        )
+        gan_epitaxial = Sample(
+            sample_id="S-002",
+            name="GaN 에피택셜",
+            avg_production_time=0.3,
+            yield_rate=0.78,
+            stock_quantity=220,
+        )
+        silicon_carbide = Sample(
+            sample_id="S-003",
+            name="실리콘 카바이드",
+            avg_production_time=0.8,
+            yield_rate=0.92,
+            stock_quantity=30,
+        )
+        repository.create(silicon_wafer)
+        repository.create(gan_epitaxial)
+        repository.create(silicon_carbide)
+
+        assert repository.search_by_name("실리콘") == [silicon_wafer, silicon_carbide]
+    finally:
+        conn.close()
