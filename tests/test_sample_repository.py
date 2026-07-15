@@ -56,3 +56,30 @@ def test_create_with_duplicate_sample_id_raises_value_error(tmp_path: Path):
         assert repository.find_by_id("S-001") == original
     finally:
         conn.close()
+
+
+def test_find_all_returns_all_samples_ordered_by_id(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        repository = SampleRepository(conn)
+        sample_2 = Sample(
+            sample_id="S-002",
+            name="GaN 에피택셜",
+            avg_production_time=0.3,
+            yield_rate=0.78,
+            stock_quantity=220,
+        )
+        sample_1 = Sample(
+            sample_id="S-001",
+            name="실리콘 웨이퍼",
+            avg_production_time=0.5,
+            yield_rate=0.92,
+            stock_quantity=100,
+        )
+        repository.create(sample_2)
+        repository.create(sample_1)
+
+        assert repository.find_all() == [sample_1, sample_2]
+    finally:
+        conn.close()
