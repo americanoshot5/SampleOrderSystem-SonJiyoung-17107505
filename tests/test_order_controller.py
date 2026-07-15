@@ -107,3 +107,30 @@ def test_approve_order_with_insufficient_stock_sets_producing_without_changing_s
         assert sample_repository.find_by_id("S-001").stock_quantity == 30
     finally:
         conn.close()
+
+
+def test_reject_order_sets_rejected_without_changing_stock(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        controller = OrderController(sample_repository, order_repository)
+        controller.place_order("S-001", "삼성전자", 50, "2026-07-16T00:00:00")
+
+        message = controller.reject_order("ORD-0001")
+
+        assert "거절" in message
+        assert order_repository.find_by_order_no("ORD-0001").status == "REJECTED"
+        assert sample_repository.find_by_id("S-001").stock_quantity == 100
+    finally:
+        conn.close()
