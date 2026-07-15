@@ -27,3 +27,14 @@ class OrderController:
             )
         )
         return f"예약 접수 완료. 주문번호: {order_no}"
+
+    def approve_order(self, order_no: str) -> str:
+        order = self._order_repository.find_by_order_no(order_no)
+        sample = self._sample_repository.find_by_id(order.sample_id)
+
+        if sample.stock_quantity >= order.quantity:
+            self._sample_repository.update_stock(
+                sample.sample_id, sample.stock_quantity - order.quantity
+            )
+            self._order_repository.update_status(order_no, "CONFIRMED")
+            return f"승인 완료. 주문 '{order_no}' 상태가 CONFIRMED로 전환되었습니다."
