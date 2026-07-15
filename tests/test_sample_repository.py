@@ -118,3 +118,25 @@ def test_search_by_name_returns_only_matching_samples(tmp_path: Path):
         assert repository.search_by_name("실리콘") == [silicon_wafer, silicon_carbide]
     finally:
         conn.close()
+
+
+def test_update_stock_changes_stock_quantity(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        repository = SampleRepository(conn)
+        repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+
+        repository.update_stock("S-001", 50)
+
+        assert repository.find_by_id("S-001").stock_quantity == 50
+    finally:
+        conn.close()
