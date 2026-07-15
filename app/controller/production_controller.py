@@ -1,4 +1,5 @@
 from app.model.order_repository import OrderRepository
+from app.model.order_status import CONFIRMED, PRODUCING
 from app.model.production_calculator import (
     calculate_actual_production,
     calculate_production_time,
@@ -13,7 +14,7 @@ class ProductionController:
         self._order_repository = order_repository
 
     def process_next_production(self) -> str:
-        queue = self._order_repository.find_by_status("PRODUCING")
+        queue = self._order_repository.find_by_status(PRODUCING)
         if not queue:
             return "생산 대기 중인 주문이 없습니다."
 
@@ -26,7 +27,7 @@ class ProductionController:
 
         new_stock = sample.stock_quantity + actual_production - order.quantity
         self._sample_repository.update_stock(sample.sample_id, new_stock)
-        self._order_repository.update_status(order.order_no, "CONFIRMED")
+        self._order_repository.update_status(order.order_no, CONFIRMED)
 
         return (
             f"생산 완료. 주문 '{order.order_no}' 실 생산량: {actual_production}ea "
@@ -34,4 +35,4 @@ class ProductionController:
         )
 
     def list_production_queue(self) -> str:
-        return format_order_table(self._order_repository.find_by_status("PRODUCING"))
+        return format_order_table(self._order_repository.find_by_status(PRODUCING))

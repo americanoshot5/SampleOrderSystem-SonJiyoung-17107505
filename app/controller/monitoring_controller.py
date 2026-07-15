@@ -1,9 +1,10 @@
 from app.model.order_repository import OrderRepository
+from app.model.order_status import CONFIRMED, PRODUCING, RELEASE, RESERVED
 from app.model.sample_repository import SampleRepository
 from app.model.stock_status import determine_stock_status
 
-ORDER_STATUSES = ["RESERVED", "CONFIRMED", "PRODUCING", "RELEASE"]
-PENDING_ORDER_STATUSES = ("RESERVED", "PRODUCING")
+ORDER_STATUSES = [RESERVED, CONFIRMED, PRODUCING, RELEASE]
+PENDING_ORDER_STATUSES = (RESERVED, PRODUCING)
 
 
 class MonitoringController:
@@ -36,7 +37,7 @@ class MonitoringController:
         sample_count = len(samples)
         total_stock = sum(sample.stock_quantity for sample in samples)
         order_count = len(self._order_repository.find_all())
-        producing_count = len(self._order_repository.find_by_status("PRODUCING"))
+        producing_count = len(self._order_repository.find_by_status(PRODUCING))
         return (
             f"등록 시료: {sample_count}   총 재고: {total_stock}   "
             f"전체 주문: {order_count}   생산라인 대기: {producing_count}"
