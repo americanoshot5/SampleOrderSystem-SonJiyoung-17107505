@@ -30,3 +30,14 @@ class MonitoringController:
             status = determine_stock_status(sample.stock_quantity, pending)
             lines.append(f"{sample.sample_id} {sample.name} 재고:{sample.stock_quantity} 상태:{status}")
         return "\n".join(lines)
+
+    def summarize_dashboard(self) -> str:
+        samples = self._sample_repository.find_all()
+        sample_count = len(samples)
+        total_stock = sum(sample.stock_quantity for sample in samples)
+        order_count = len(self._order_repository.find_all())
+        producing_count = len(self._order_repository.find_by_status("PRODUCING"))
+        return (
+            f"등록 시료: {sample_count}   총 재고: {total_stock}   "
+            f"전체 주문: {order_count}   생산라인 대기: {producing_count}"
+        )
