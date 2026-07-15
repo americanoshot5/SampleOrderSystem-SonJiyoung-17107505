@@ -20,8 +20,14 @@ class OrderRepository:
         row = self._conn.execute(
             "SELECT * FROM orders WHERE order_no = ?", (order_no,)
         ).fetchone()
-        if row is None:
-            return None
+        return self._to_order(row) if row is not None else None
+
+    def find_all(self) -> list[Order]:
+        rows = self._conn.execute("SELECT * FROM orders ORDER BY order_no").fetchall()
+        return [self._to_order(row) for row in rows]
+
+    @staticmethod
+    def _to_order(row: sqlite3.Row) -> Order:
         return Order(
             order_no=row["order_no"],
             sample_id=row["sample_id"],
