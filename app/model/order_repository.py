@@ -26,6 +26,13 @@ class OrderRepository:
         rows = self._conn.execute("SELECT * FROM orders ORDER BY order_no").fetchall()
         return [self._to_order(row) for row in rows]
 
+    def update_status(self, order_no: str, status: str) -> None:
+        self._conn.execute(
+            "UPDATE orders SET status = ? WHERE order_no = ?",
+            (status, order_no),
+        )
+        self._conn.commit()
+
     @staticmethod
     def _to_order(row: sqlite3.Row) -> Order:
         return Order(
