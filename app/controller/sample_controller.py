@@ -16,3 +16,6 @@ class SampleController:
 
     def list_samples(self) -> str:
         return format_sample_table(self._repository.find_all())
+
+    def search_samples(self, keyword: str) -> str:
+        return format_sample_table(self._repository.search_by_name(keyword))
