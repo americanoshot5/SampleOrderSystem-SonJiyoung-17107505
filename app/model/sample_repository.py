@@ -28,6 +28,13 @@ class SampleRepository:
         rows = self._conn.execute("SELECT * FROM samples ORDER BY sample_id").fetchall()
         return [self._to_sample(row) for row in rows]
 
+    def search_by_name(self, keyword: str) -> list[Sample]:
+        rows = self._conn.execute(
+            "SELECT * FROM samples WHERE name LIKE ? ORDER BY sample_id",
+            (f"%{keyword}%",),
+        ).fetchall()
+        return [self._to_sample(row) for row in rows]
+
     @staticmethod
     def _to_sample(row: sqlite3.Row) -> Sample:
         return Sample(
