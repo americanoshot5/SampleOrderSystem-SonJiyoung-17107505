@@ -45,3 +45,7 @@ class OrderController:
             f"재고 부족으로 생산 대기 등록. 부족분: {shortage}. "
             f"주문 '{order_no}' 상태가 PRODUCING으로 전환되었습니다."
         )
+
+    def reject_order(self, order_no: str) -> str:
+        self._order_repository.update_status(order_no, "REJECTED")
+        return f"주문 '{order_no}'을(를) 거절했습니다."
