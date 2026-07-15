@@ -8,6 +8,8 @@ class SampleRepository:
         self._conn = conn
 
     def create(self, sample: Sample) -> None:
+        if self.find_by_id(sample.sample_id) is not None:
+            raise ValueError(f"이미 존재하는 시료 ID입니다: {sample.sample_id}")
         self._conn.execute(
             "INSERT INTO samples (sample_id, name, avg_production_time, yield_rate, stock_quantity) "
             "VALUES (?, ?, ?, ?, ?)",
