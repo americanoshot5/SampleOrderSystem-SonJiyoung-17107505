@@ -80,3 +80,43 @@ def test_summarize_stock_status_shows_status_per_sample(tmp_path: Path):
         assert "고갈" in s002_line
     finally:
         conn.close()
+
+
+def test_summarize_dashboard_shows_counts(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        sample_repository.create(
+            Sample(
+                sample_id="S-002",
+                name="GaN 에피택셜",
+                avg_production_time=0.3,
+                yield_rate=0.78,
+                stock_quantity=50,
+            )
+        )
+        order_controller = OrderController(sample_repository, order_repository)
+        order_controller.place_order("S-001", "고객A", 10, "2026-07-16T00:00:00")
+        order_controller.place_order("S-001", "고객B", 200, "2026-07-16T01:00:00")
+        order_controller.approve_order("ORD-0002")  # 재고 부족 -> PRODUCING
+
+        controller = MonitoringController(order_repository, sample_repository)
+        result = controller.summarize_dashboard()
+
+        assert "등록 시료: 2" in result
+        assert "총 재고: 150" in result
+        assert "전체 주문: 2" in result
+        assert "생산라인 대기: 1" in result
+    finally:
+        conn.close()
