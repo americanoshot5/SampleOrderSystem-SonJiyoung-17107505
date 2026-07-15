@@ -11,8 +11,25 @@ from app.db import get_connection, init_db
 from app.model.order_repository import OrderRepository
 from app.model.sample import Sample
 from app.model.sample_repository import SampleRepository
+from app.view.input_parser import parse_float, parse_int
 
 DB_PATH = Path(__file__).parent / "data" / "sample_order.db"
+
+
+def prompt_int(prompt: str) -> int:
+    while True:
+        value = parse_int(input(prompt).strip())
+        if value is not None:
+            return value
+        print("숫자를 입력하세요.")
+
+
+def prompt_float(prompt: str) -> float:
+    while True:
+        value = parse_float(input(prompt).strip())
+        if value is not None:
+            return value
+        print("숫자를 입력하세요.")
 
 
 def show_main_menu(monitoring_controller: MonitoringController) -> None:
@@ -25,9 +42,9 @@ def show_main_menu(monitoring_controller: MonitoringController) -> None:
 def prompt_new_sample() -> Sample:
     sample_id = input("시료 ID > ").strip()
     name = input("이름 > ").strip()
-    avg_production_time = float(input("평균 생산시간(min/ea) > ").strip())
-    yield_rate = float(input("수율(0~1) > ").strip())
-    stock_quantity = int(input("초기 재고 > ").strip())
+    avg_production_time = prompt_float("평균 생산시간(min/ea) > ")
+    yield_rate = prompt_float("수율(0~1) > ")
+    stock_quantity = prompt_int("초기 재고 > ")
     return Sample(
         sample_id=sample_id,
         name=name,
@@ -40,7 +57,7 @@ def prompt_new_sample() -> Sample:
 def prompt_new_order() -> tuple[str, str, int]:
     sample_id = input("시료 ID > ").strip()
     customer_name = input("고객명 > ").strip()
-    quantity = int(input("주문 수량 > ").strip())
+    quantity = prompt_int("주문 수량 > ")
     return sample_id, customer_name, quantity
 
 
