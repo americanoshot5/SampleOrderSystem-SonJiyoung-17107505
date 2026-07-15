@@ -4,6 +4,7 @@ from app.model.production_calculator import (
     calculate_production_time,
 )
 from app.model.sample_repository import SampleRepository
+from app.view.order_view import format_order_table
 
 
 class ProductionController:
@@ -31,3 +32,6 @@ class ProductionController:
             f"생산 완료. 주문 '{order.order_no}' 실 생산량: {actual_production}ea "
             f"(생산시간 {production_time}분). 상태가 CONFIRMED로 전환되었습니다."
         )
+
+    def list_production_queue(self) -> str:
+        return format_order_table(self._order_repository.find_by_status("PRODUCING"))
