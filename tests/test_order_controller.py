@@ -5,6 +5,7 @@ from app.db import get_connection, init_db
 from app.model.order_repository import OrderRepository
 from app.model.sample import Sample
 from app.model.sample_repository import SampleRepository
+from app.view.order_view import format_order_table
 
 
 def test_place_order_with_unknown_sample_id_returns_failure_message(tmp_path: Path):
@@ -132,5 +133,34 @@ def test_reject_order_sets_rejected_without_changing_stock(tmp_path: Path):
         assert "거절" in message
         assert order_repository.find_by_order_no("ORD-0001").status == "REJECTED"
         assert sample_repository.find_by_id("S-001").stock_quantity == 100
+    finally:
+        conn.close()
+
+
+def test_list_reserved_orders_returns_formatted_table_of_reserved_orders(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        controller = OrderController(sample_repository, order_repository)
+        controller.place_order("S-001", "삼성전자", 50, "2026-07-16T00:00:00")
+        controller.place_order("S-001", "SK하이닉스", 30, "2026-07-16T01:00:00")
+        controller.approve_order("ORD-0002")
+
+        result = controller.list_reserved_orders()
+
+        assert result == format_order_table(order_repository.find_by_status("RESERVED"))
+        assert "ORD-0001" in result
+        assert "ORD-0002" not in result
     finally:
         conn.close()
