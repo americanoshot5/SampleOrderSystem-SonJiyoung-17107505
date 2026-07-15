@@ -89,3 +89,41 @@ def test_full_lifecycle_with_insufficient_stock_reaches_release_after_production
         assert "PRODUCING: 0" in final_summary
     finally:
         conn.close()
+
+
+def test_full_lifecycle_with_rejection_excludes_from_monitoring(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        order_controller = OrderController(sample_repository, order_repository)
+        release_controller = ReleaseController(order_repository)
+        monitoring_controller = MonitoringController(order_repository, sample_repository)
+
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+
+        order_controller.place_order("S-001", "삼성전자", 50, "2026-07-16T00:00:00")
+        order_controller.reject_order("ORD-0001")
+
+        assert order_repository.find_by_order_no("ORD-0001").status == "REJECTED"
+        assert sample_repository.find_by_id("S-001").stock_quantity == 100
+
+        summary = monitoring_controller.summarize_order_status()
+        assert "RESERVED: 0" in summary
+        assert "CONFIRMED: 0" in summary
+        assert "PRODUCING: 0" in summary
+        assert "RELEASE: 0" in summary
+        assert "REJECTED" not in summary
+
+        assert "ORD-0001" not in release_controller.list_confirmed_orders()
+    finally:
+        conn.close()
