@@ -1,5 +1,6 @@
 from app.model.sample import Sample
 from app.model.sample_repository import SampleRepository
+from app.view.sample_view import format_sample_table
 
 
 class SampleController:
@@ -12,3 +13,6 @@ class SampleController:
         except ValueError as e:
             return f"등록 실패: {e}"
         return f"시료 '{sample.name}' 등록 완료."
+
+    def list_samples(self) -> str:
+        return format_sample_table(self._repository.find_all())
