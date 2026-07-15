@@ -15,8 +15,9 @@ from app.model.sample_repository import SampleRepository
 DB_PATH = Path(__file__).parent / "data" / "sample_order.db"
 
 
-def show_main_menu() -> None:
+def show_main_menu(monitoring_controller: MonitoringController) -> None:
     print("\n==================== 반도체 시료 생산주문관리 시스템 ====================")
+    print(monitoring_controller.summarize_dashboard())
     print("[1] 시료 등록   [2] 시료 목록   [3] 시료 검색   [4] 시료 주문   "
           "[5] 주문 승인/거절   [6] 생산 라인   [7] 출고 처리   [8] 모니터링   [0] 종료")
 
@@ -91,7 +92,7 @@ def main() -> None:
 
     try:
         while True:
-            show_main_menu()
+            show_main_menu(monitoring_controller)
             choice = input("선택 > ").strip()
             if choice == "0":
                 print("종료합니다.")
