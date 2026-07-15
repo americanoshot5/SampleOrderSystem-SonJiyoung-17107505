@@ -14,7 +14,8 @@ DB_PATH = Path(__file__).parent / "data" / "sample_order.db"
 
 def show_main_menu() -> None:
     print("\n==================== 반도체 시료 생산주문관리 시스템 ====================")
-    print("[1] 시료 등록   [2] 시료 목록   [3] 시료 검색   [4] 시료 주문   [0] 종료")
+    print("[1] 시료 등록   [2] 시료 목록   [3] 시료 검색   [4] 시료 주문   "
+          "[5] 주문 승인/거절   [0] 종료")
 
 
 def prompt_new_sample() -> Sample:
@@ -37,6 +38,18 @@ def prompt_new_order() -> tuple[str, str, int]:
     customer_name = input("고객명 > ").strip()
     quantity = int(input("주문 수량 > ").strip())
     return sample_id, customer_name, quantity
+
+
+def handle_order_approval(order_controller: OrderController) -> None:
+    print(order_controller.list_reserved_orders())
+    order_no = input("승인/거절할 주문번호 > ").strip()
+    decision = input("[Y] 승인   [N] 거절 > ").strip().upper()
+    if decision == "Y":
+        print(order_controller.approve_order(order_no))
+    elif decision == "N":
+        print(order_controller.reject_order(order_no))
+    else:
+        print("올바른 선택을 입력하세요.")
 
 
 def main() -> None:
@@ -67,6 +80,8 @@ def main() -> None:
                 sample_id, customer_name, quantity = prompt_new_order()
                 created_at = datetime.now().isoformat(timespec="seconds")
                 print(order_controller.place_order(sample_id, customer_name, quantity, created_at))
+            elif choice == "5":
+                handle_order_approval(order_controller)
             else:
                 print("올바른 메뉴를 선택하세요.")
     finally:
