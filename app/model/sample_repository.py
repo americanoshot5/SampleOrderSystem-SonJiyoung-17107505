@@ -22,8 +22,14 @@ class SampleRepository:
         row = self._conn.execute(
             "SELECT * FROM samples WHERE sample_id = ?", (sample_id,)
         ).fetchone()
-        if row is None:
-            return None
+        return self._to_sample(row) if row is not None else None
+
+    def find_all(self) -> list[Sample]:
+        rows = self._conn.execute("SELECT * FROM samples ORDER BY sample_id").fetchall()
+        return [self._to_sample(row) for row in rows]
+
+    @staticmethod
+    def _to_sample(row: sqlite3.Row) -> Sample:
         return Sample(
             sample_id=row["sample_id"],
             name=row["name"],
