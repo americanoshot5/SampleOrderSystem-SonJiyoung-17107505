@@ -2,6 +2,7 @@ from app.model.order import Order
 from app.model.order_numbering import generate_next_order_no
 from app.model.order_repository import OrderRepository
 from app.model.sample_repository import SampleRepository
+from app.view.order_view import format_order_table
 
 
 class OrderController:
@@ -49,3 +50,6 @@ class OrderController:
     def reject_order(self, order_no: str) -> str:
         self._order_repository.update_status(order_no, "REJECTED")
         return f"주문 '{order_no}'을(를) 거절했습니다."
+
+    def list_reserved_orders(self) -> str:
+        return format_order_table(self._order_repository.find_by_status("RESERVED"))
