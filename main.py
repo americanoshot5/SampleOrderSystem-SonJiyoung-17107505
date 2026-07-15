@@ -2,6 +2,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from app.controller.monitoring_controller import MonitoringController
 from app.controller.order_controller import OrderController
 from app.controller.production_controller import ProductionController
 from app.controller.release_controller import ReleaseController
@@ -17,7 +18,7 @@ DB_PATH = Path(__file__).parent / "data" / "sample_order.db"
 def show_main_menu() -> None:
     print("\n==================== 반도체 시료 생산주문관리 시스템 ====================")
     print("[1] 시료 등록   [2] 시료 목록   [3] 시료 검색   [4] 시료 주문   "
-          "[5] 주문 승인/거절   [6] 생산 라인   [7] 출고 처리   [0] 종료")
+          "[5] 주문 승인/거절   [6] 생산 라인   [7] 출고 처리   [8] 모니터링   [0] 종료")
 
 
 def prompt_new_sample() -> Sample:
@@ -67,6 +68,13 @@ def handle_release(release_controller: ReleaseController) -> None:
     print(release_controller.release_order(order_no))
 
 
+def handle_monitoring(monitoring_controller: MonitoringController) -> None:
+    print("\n[상태별 주문 현황]")
+    print(monitoring_controller.summarize_order_status())
+    print("\n[시료별 재고 현황]")
+    print(monitoring_controller.summarize_stock_status())
+
+
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stdin.reconfigure(encoding="utf-8")
@@ -79,6 +87,7 @@ def main() -> None:
     order_controller = OrderController(sample_repository, order_repository)
     production_controller = ProductionController(sample_repository, order_repository)
     release_controller = ReleaseController(order_repository)
+    monitoring_controller = MonitoringController(order_repository, sample_repository)
 
     try:
         while True:
@@ -104,6 +113,8 @@ def main() -> None:
                 handle_production_line(production_controller)
             elif choice == "7":
                 handle_release(release_controller)
+            elif choice == "8":
+                handle_monitoring(monitoring_controller)
             else:
                 print("올바른 메뉴를 선택하세요.")
     finally:
