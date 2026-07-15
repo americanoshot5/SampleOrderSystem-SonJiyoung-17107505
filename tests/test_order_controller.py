@@ -5,6 +5,7 @@ from app.db import get_connection, init_db
 from app.model.order_repository import OrderRepository
 from app.model.sample import Sample
 from app.model.sample_repository import SampleRepository
+from app.view.order_view import format_order_table
 
 
 def test_place_order_with_unknown_sample_id_returns_failure_message(tmp_path: Path):
@@ -50,5 +51,116 @@ def test_place_order_with_known_sample_id_creates_reserved_order(tmp_path: Path)
         assert order.quantity == 50
         assert order.status == "RESERVED"
         assert order.created_at == "2026-07-16T00:00:00"
+    finally:
+        conn.close()
+
+
+def test_approve_order_with_sufficient_stock_confirms_order_and_deducts_stock(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        controller = OrderController(sample_repository, order_repository)
+        controller.place_order("S-001", "삼성전자", 50, "2026-07-16T00:00:00")
+
+        message = controller.approve_order("ORD-0001")
+
+        assert "승인 완료" in message
+        assert order_repository.find_by_order_no("ORD-0001").status == "CONFIRMED"
+        assert sample_repository.find_by_id("S-001").stock_quantity == 50
+    finally:
+        conn.close()
+
+
+def test_approve_order_with_insufficient_stock_sets_producing_without_changing_stock(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=30,
+            )
+        )
+        controller = OrderController(sample_repository, order_repository)
+        controller.place_order("S-001", "삼성전자", 50, "2026-07-16T00:00:00")
+
+        message = controller.approve_order("ORD-0001")
+
+        assert "생산" in message
+        assert "20" in message
+        assert order_repository.find_by_order_no("ORD-0001").status == "PRODUCING"
+        assert sample_repository.find_by_id("S-001").stock_quantity == 30
+    finally:
+        conn.close()
+
+
+def test_reject_order_sets_rejected_without_changing_stock(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        controller = OrderController(sample_repository, order_repository)
+        controller.place_order("S-001", "삼성전자", 50, "2026-07-16T00:00:00")
+
+        message = controller.reject_order("ORD-0001")
+
+        assert "거절" in message
+        assert order_repository.find_by_order_no("ORD-0001").status == "REJECTED"
+        assert sample_repository.find_by_id("S-001").stock_quantity == 100
+    finally:
+        conn.close()
+
+
+def test_list_reserved_orders_returns_formatted_table_of_reserved_orders(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        sample_repository = SampleRepository(conn)
+        order_repository = OrderRepository(conn)
+        sample_repository.create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        controller = OrderController(sample_repository, order_repository)
+        controller.place_order("S-001", "삼성전자", 50, "2026-07-16T00:00:00")
+        controller.place_order("S-001", "SK하이닉스", 30, "2026-07-16T01:00:00")
+        controller.approve_order("ORD-0002")
+
+        result = controller.list_reserved_orders()
+
+        assert result == format_order_table(order_repository.find_by_status("RESERVED"))
+        assert "ORD-0001" in result
+        assert "ORD-0002" not in result
     finally:
         conn.close()

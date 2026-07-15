@@ -35,6 +35,13 @@ class SampleRepository:
         ).fetchall()
         return [self._to_sample(row) for row in rows]
 
+    def update_stock(self, sample_id: str, new_quantity: int) -> None:
+        self._conn.execute(
+            "UPDATE samples SET stock_quantity = ? WHERE sample_id = ?",
+            (new_quantity, sample_id),
+        )
+        self._conn.commit()
+
     @staticmethod
     def _to_sample(row: sqlite3.Row) -> Sample:
         return Sample(

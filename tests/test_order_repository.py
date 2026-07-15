@@ -74,3 +74,73 @@ def test_find_all_returns_all_orders_ordered_by_order_no(tmp_path: Path):
         assert repository.find_all() == [order_1, order_2]
     finally:
         conn.close()
+
+
+def test_update_status_changes_order_status(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        SampleRepository(conn).create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        repository = OrderRepository(conn)
+        repository.create(
+            Order(
+                order_no="ORD-0001",
+                sample_id="S-001",
+                customer_name="삼성전자",
+                quantity=50,
+                status="RESERVED",
+                created_at="2026-07-16T00:00:00",
+            )
+        )
+
+        repository.update_status("ORD-0001", "CONFIRMED")
+
+        assert repository.find_by_order_no("ORD-0001").status == "CONFIRMED"
+    finally:
+        conn.close()
+
+
+def test_find_by_status_returns_only_matching_orders(tmp_path: Path):
+    conn = get_connection(tmp_path / "test.db")
+    try:
+        init_db(conn)
+        SampleRepository(conn).create(
+            Sample(
+                sample_id="S-001",
+                name="실리콘 웨이퍼",
+                avg_production_time=0.5,
+                yield_rate=0.92,
+                stock_quantity=100,
+            )
+        )
+        repository = OrderRepository(conn)
+        reserved_order = Order(
+            order_no="ORD-0001",
+            sample_id="S-001",
+            customer_name="삼성전자",
+            quantity=50,
+            status="RESERVED",
+            created_at="2026-07-16T00:00:00",
+        )
+        confirmed_order = Order(
+            order_no="ORD-0002",
+            sample_id="S-001",
+            customer_name="SK하이닉스",
+            quantity=30,
+            status="CONFIRMED",
+            created_at="2026-07-16T01:00:00",
+        )
+        repository.create(reserved_order)
+        repository.create(confirmed_order)
+
+        assert repository.find_by_status("RESERVED") == [reserved_order]
+    finally:
+        conn.close()
