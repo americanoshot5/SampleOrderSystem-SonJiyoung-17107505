@@ -8,6 +8,8 @@ class SampleRepository:
         self._conn = conn
 
     def create(self, sample: Sample) -> None:
+        if self.find_by_id(sample.sample_id) is not None:
+            raise ValueError(f"이미 존재하는 시료 ID입니다: {sample.sample_id}")
         self._conn.execute(
             "INSERT INTO samples (sample_id, name, avg_production_time, yield_rate, stock_quantity) "
             "VALUES (?, ?, ?, ?, ?)",
@@ -20,8 +22,21 @@ class SampleRepository:
         row = self._conn.execute(
             "SELECT * FROM samples WHERE sample_id = ?", (sample_id,)
         ).fetchone()
-        if row is None:
-            return None
+        return self._to_sample(row) if row is not None else None
+
+    def find_all(self) -> list[Sample]:
+        rows = self._conn.execute("SELECT * FROM samples ORDER BY sample_id").fetchall()
+        return [self._to_sample(row) for row in rows]
+
+    def search_by_name(self, keyword: str) -> list[Sample]:
+        rows = self._conn.execute(
+            "SELECT * FROM samples WHERE name LIKE ? ORDER BY sample_id",
+            (f"%{keyword}%",),
+        ).fetchall()
+        return [self._to_sample(row) for row in rows]
+
+    @staticmethod
+    def _to_sample(row: sqlite3.Row) -> Sample:
         return Sample(
             sample_id=row["sample_id"],
             name=row["name"],
